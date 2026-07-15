@@ -1,0 +1,4 @@
+# Log Run
+**Run 1:** Profile A, delay_ms 40. **INVALID** (Miss rate ~100%) Baseline code used. * **Run 2:** Profile A, delay_ms 60. **INVALID** (1.13% Miss rate). Added XOR based Forward Error Correction (FEC) sending parity of i-1 and i-2 on every even frame. Bandwidth was OK (1.51x) but the delay was too short for the recovery to get there before the deadline.
+* **Run 3:** Profile A, delay_ms 85. **VALID** (Miss rate 0.13% Increased playout delay to allow the jitter buffer time to receive the n+2 parity packet and reconstruct dropped frames mathematically;
+* **Run 4:** Profile B, delay_ms [105]. **VALID**

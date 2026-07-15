@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Summary</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; margin: 2rem auto; max-width: 800px; padding: 0 1rem; color: #333; }
+        h1, h2 { color: #2c3e50; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 4px; }
+        .section { margin-bottom: 2rem; border-left: 4px solid #3498db; padding-left: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>System Architecture & Design Summary</h1>
+    
+    <div class="section">
+        <h2>1. Objective and Trade-offs</h2>
+        <p>The goal was to transmit real-time audio frames (160 bytes, 20ms intervals) over a hostile UDP network while keeping deadline misses &le; 1.0% and bandwidth overhead &le; 2.0x. Because ARQ (retransmissions) require full round-trips that introduce unacceptable latency spikes, the architecture relies exclusively on <strong>Forward Error Correction (FEC)</strong>.</p>
+    </div>
+
+    <div class="section">
+        <h2>2. Wire Protocol Design</h2>
+        <p>To respect the bandwidth cap, we cannot simply duplicate every packet. Instead, we use an interleaved XOR parity scheme:</p>
+        <ul>
+            <li><strong>Sequence Compression:</strong> The 32-bit sequence number is downcast to an 8-bit wrap-around integer on the wire to save bytes, reconstructed at the receiver.</li>
+            <li><strong>Parity Injection:</strong> On every <i>even</i> sequence number, the sender calculates the XOR parity of the two previous payloads (<code>P_i-1 &oplus; P_i-2</code>) and appends it to the packet.</li>
+            <li><strong>Overhead:</strong> This yields an average overhead of ~1.5x, safely below the 2.0x limit.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Receiver & Jitter Buffer</h2>
+        <p>The receiver utilizes a static 65536-element ring buffer (<code>has_fec_buf</code> and <code>payload_buf</code>) to handle extreme out-of-order delivery without dynamic memory allocation.</p>
+        <p>Upon receiving a packet, the receiver immediately pushes the current frame to the playout harness. It then sweeps the recent history window. If a packet was dropped, but the subsequent parity packet and one of the adjacent payloads exist, the missing payload is mathematically reconstructed (e.g., <code>P_missing = Parity &oplus; P_known</code>) and played before its deadline.</p>
+    </div>
+</body>
+</html>
